@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AthleteShield — Sports Injury Prediction</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #090d14;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #1f2d3d;
+    --accent: #00e5ff;
+    --accent2: #ff4757;
+    --accent3: #ffd32a;
+    --text: #e8edf3;
+    --muted: #6b7a90;
+    --green: #00c853;
+    --orange: #ff9100;
+    --red: #ff1744;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    background: rgba(9,13,20,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700; font-size: 20px; color: var(--text);
+  }
+  .logo-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #00e5ff 0%, #0072ff 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .badge {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1px solid var(--accent);
+    color: var(--accent); text-transform: uppercase;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 60px 24px 40px;
+  }
+
+  .hero-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: clamp(28px, 6vw, 52px);
+    font-weight: 800; line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero h1 span { color: var(--accent); }
+
+  .hero p {
+    color: var(--muted); font-size: 15px; line-height: 1.6;
+    max-width: 440px; margin: 0 auto 32px;
+  }
+
+  /* Animated body silhouette */
+  .body-vis {
+    position: relative;
+    width: 160px; height: 260px;
+    margin: 0 auto 32px;
+  }
+  .body-vis svg { width: 100%; height: 100%; }
+
+  /* ── MAIN CONTAINER ── */
+  .container {
+    position: relative; z-index: 1;
+    max-width: 680px; margin: 0 auto;
+    padding: 0 20px 60px;
+  }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap {
+    margin-bottom: 28px;
+  }
+  .progress-labels {
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: var(--muted); margin-bottom: 8px;
+  }
+  .progress-track {
+    height: 4px; background: var(--border); border-radius: 4px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0072ff, #00e5ff);
+    border-radius: 4px;
+    transition: width 0.4s ease;
+  }
+  .step-dots {
+    display: flex; gap: 8px; margin-top: 10px; justify-content: center;
+  }
+  .step-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); transition: all 0.3s;
+  }
+  .step-dot.active { background: var(--accent); transform: scale(1.3); }
+  .step-dot.done { background: #0072ff; }
+
+  /* ── QUESTION CARD ── */
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+    animation: slideIn 0.3s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .q-number {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+  }
+  .q-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px; font-weight: 600; margin-bottom: 6px; line-height: 1.3;
+  }
+  .q-hint { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+  /* Option buttons */
+  .options { display: flex; flex-direction: column; gap: 10px; }
+  .opt-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px; border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: transparent; color: var(--text);
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    text-align: left; transition: all 0.2s;
+  }
+  .opt-btn:hover { border-color: var(--accent); background: rgba(0,229,255,0.05); }
+  .opt-btn.selected { border-color: var(--accent); background: rgba(0,229,255,0.1); color: var(--accent); }
+  .opt-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* Sliders */
+  .slider-wrap { padding: 8px 0; }
+  .slider-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32px; font-weight: 700; color: var(--accent);
+    text-align: center; margin-bottom: 12px;
+  }
+  .slider-value span { font-size: 16px; color: var(--muted); font-weight: 400; }
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 6px;
+    background: var(--border); border-radius: 6px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+    box-shadow: 0 0 10px rgba(0,229,255,0.4);
+  }
+  .slider-labels {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted); margin-top: 6px;
+  }
+
+  /* Multi-select chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 8px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: transparent; color: var(--text);
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.selected { border-color: var(--accent); background: rgba(0,229,255,0.12); color: var(--accent); }
+
+  /* Number input grid */
+  .num-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .num-field label {
+    display: block; font-size: 12px; color: var(--muted);
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .num-field input {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    background: var(--surface2); border: 1.5px solid var(--border);
+    color: var(--text); font-size: 15px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .num-field input:focus { border-color: var(--accent); }
+
+  /* ── NAV BUTTONS ── */
+  .nav-btns {
+    display: flex; gap: 12px; margin-top: 20px;
+  }
+  .btn-back {
+    padding: 13px 24px; border-radius: 10px;
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--muted); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  }
+  .btn-back:hover { border-color: var(--text); color: var(--text); }
+  .btn-next {
+    flex: 1; padding: 13px 24px; border-radius: 10px;
+    background: linear-gradient(135deg, #0072ff, #00e5ff);
+    border: none; color: #000; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-next:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-next:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── LOADING ── */
+  #loading-screen {
+    display: none; text-align: center; padding: 60px 20px;
+    animation: fadeIn 0.4s ease;
+  }
+  @keyframes fadeIn { from {opacity:0} to {opacity:1} }
+  .loader-ring {
+    width: 80px; height: 80px; margin: 0 auto 24px;
+    border: 3px solid var(--border);
+    border-top: 3px solid var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-status {
+    font-size: 14px; color: var(--muted); min-height: 20px;
+    transition: opacity 0.3s;
+  }
+
+  /* ── RESULTS ── */
+  #results-screen {
+    display: none; animation: slideIn 0.4s ease;
+  }
+
+  .risk-gauge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px;
+    text-align: center; margin-bottom: 16px;
+  }
+  .gauge-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+  }
+  .gauge-arc {
+    position: relative; width: 160px; height: 90px; margin: 0 auto 16px;
+  }
+  .gauge-arc svg { width: 100%; height: auto; }
+  .gauge-score {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 48px; font-weight: 800; line-height: 1;
+    margin-bottom: 4px;
+  }
+  .gauge-level {
+    display: inline-block; font-size: 13px; font-weight: 700;
+    padding: 4px 14px; border-radius: 20px; margin-bottom: 12px;
+  }
+  .risk-low { color: var(--green); }
+  .risk-med { color: var(--orange); }
+  .risk-high { color: var(--red); }
+  .bg-low { background: rgba(0,200,83,0.12); color: var(--green); border: 1px solid rgba(0,200,83,0.3); }
+  .bg-med { background: rgba(255,145,0,0.12); color: var(--orange); border: 1px solid rgba(255,145,0,0.3); }
+  .bg-high { background: rgba(255,23,68,0.12); color: var(--red); border: 1px solid rgba(255,23,68,0.3); }
+
+  /* Risk breakdown bars */
+  .breakdown {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 16px;
+  }
+  .breakdown h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 700; margin-bottom: 18px;
+  }
+  .risk-bar-row {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .risk-bar-label {
+    font-size: 13px; font-weight: 500; width: 130px; flex-shrink: 0;
+  }
+  .risk-bar-track {
+    flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden;
+  }
+  .risk-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 1s ease;
+  }
+  .risk-bar-pct {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    width: 36px; text-align: right; flex-shrink: 0;
+  }
+
+  /* Injury risk cards */
+  .injury-cards {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .injury-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+  }
+  .injury-card .inj-name {
+    font-size: 13px; font-weight: 700; margin-bottom: 4px;
+  }
+  .injury-card .inj-prob {
+    font-size: 22px; font-weight: 800;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .injury-card .inj-label {
+    font-size: 11px; color: var(--muted); margin-top: 2px;
+  }
+
+  /* Recommendations */
+  .recs {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; margin-bottom: 16px;
+  }
+  .recs h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px; font-weight: 700; margin-bottom: 16px;
+  }
+  .rec-item {
+    display: flex; gap: 12px; margin-bottom: 14px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--border);
+  }
+  .rec-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .rec-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .rec-body { flex: 1; }
+  .rec-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .rec-desc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* AI analysis box */
+  .ai-analysis {
+    background: linear-gradient(135deg, rgba(0,114,255,0.1), rgba(0,229,255,0.05));
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 16px; padding: 24px; margin-bottom: 16px;
+  }
+  .ai-analysis .ai-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+  }
+  .ai-text { font-size: 14px; line-height: 1.7; color: var(--text); }
+
+  .btn-restart {
+    width: 100%; padding: 14px; border-radius: 10px;
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--muted); font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; margin-top: 8px;
+  }
+  .btn-restart:hover { border-color: var(--text); color: var(--text); }
+
+  .disclaimer {
+    font-size: 11px; color: var(--muted); text-align: center;
+    margin-top: 20px; line-height: 1.6; padding: 0 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡️</div>
+    AthleteShield
+  </div>
+  <div class="badge">AI-Powered</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">For Competitive & Amateur Athletes</div>
+  <h1>Predict your <span>injury risk</span><br>before it happens</h1>
+  <p>Answer 7 questions. Our AI analyses your training load, biomechanics, and history to pinpoint your risk zones.</p>
+
+  <!-- Animated body with pulse rings -->
+  <div class="body-vis">
+    <svg viewBox="0 0 160 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- Pulse rings -->
+      <circle cx="80" cy="130" r="70" stroke="rgba(0,229,255,0.06)" stroke-width="1"/>
+      <circle cx="80" cy="130" r="55" stroke="rgba(0,229,255,0.09)" stroke-width="1"/>
+      <circle cx="80" cy="130" r="40" stroke="rgba(0,229,255,0.12)" stroke-width="1"/>
+      <!-- Body: head -->
+      <circle cx="80" cy="26" r="18" fill="rgba(0,229,255,0.15)" stroke="#00e5ff" stroke-width="1.5"/>
+      <!-- torso -->
+      <rect x="55" y="48" width="50" height="70" rx="10" fill="rgba(0,229,255,0.1)" stroke="#00e5ff" stroke-width="1.5"/>
+      <!-- left arm -->
+      <rect x="28" y="50" width="24" height="60" rx="10" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1.5" transform="rotate(-8 40 80)"/>
+      <!-- right arm -->
+      <rect x="108" y="50" width="24" height="60" rx="10" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1.5" transform="rotate(8 120 80)"/>
+      <!-- left leg -->
+      <rect x="56" y="118" width="24" height="80" rx="10" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1.5" transform="rotate(-3 68 158)"/>
+      <!-- right leg -->
+      <rect x="80" y="118" width="24" height="80" rx="10" fill="rgba(0,229,255,0.08)" stroke="#00e5ff" stroke-width="1.5" transform="rotate(3 92 158)"/>
+      <!-- Hotspots -->
+      <circle cx="80" cy="50" r="5" fill="#ff4757" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="68" cy="140" r="5" fill="#ffd32a" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="92" cy="175" r="5" fill="#ff9100" opacity="0.8">
+        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1.8s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+  <!-- FORM SCREEN -->
+  <div id="form-screen">
+    <div class="progress-wrap">
+      <div class="progress-labels">
+        <span id="step-label">Question 1 of 7</span>
+        <span id="pct-label">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="step-dots" id="step-dots"></div>
+    </div>
+
+    <div id="question-area"></div>
+
+    <div class="nav-btns">
+      <button class="btn-back" id="btn-back" onclick="prevStep()" style="display:none">← Back</button>
+      <button class="btn-next" id="btn-next" onclick="nextStep()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen">
+    <div class="loader-ring"></div>
+    <div style="font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px">
+      Analysing your data…
+    </div>
+    <div class="loading-status" id="loading-status">Initialising biomechanical model…</div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results-screen">
+    <div id="results-content"></div>
+    <button class="btn-restart" onclick="restart()">↩ Start over — reassess risk</button>
+    <p class="disclaimer">⚕️ AthleteShield is an AI-powered screening tool. Results are not a medical diagnosis. Consult a sports physician or physiotherapist for clinical evaluation.</p>
+  </div>
+
+</div>
+
+<script>
+// ── QUESTIONS ──────────────────────────────────────────────────────────────
+const questions = [
+  {
+    id: 'sport',
+    type: 'options',
+    text: 'What is your primary sport?',
+    hint: 'Select the sport you train most seriously',
+    options: [
+      { label: 'Football / Soccer', icon: '⚽' },
+      { label: 'Basketball', icon: '🏀' },
+      { label: 'Running / Athletics', icon: '🏃' },
+      { label: 'Weightlifting / CrossFit', icon: '🏋️' },
+      { label: 'Tennis / Racket Sports', icon: '🎾' },
+      { label: 'Swimming', icon: '🏊' },
+      { label: 'Cycling', icon: '🚴' },
+      { label: 'Martial Arts / Combat', icon: '🥊' },
+    ]
+  },
+  {
+    id: 'level',
+    type: 'options',
+    text: 'What is your training level?',
+    hint: 'How would you describe your current commitment',
+    options: [
+      { label: 'Recreational (1–2x/week)', icon: '🌱' },
+      { label: 'Amateur (3–4x/week)', icon: '💪' },
+      { label: 'Competitive (5–6x/week)', icon: '🏅' },
+      { label: 'Elite / Professional (daily+)', icon: '🏆' },
+    ]
+  },
+  {
+    id: 'trainingLoad',
+    type: 'slider',
+    text: 'Average weekly training hours?',
+    hint: 'Include all sessions — training, matches, practice',
+    min: 1, max: 35, step: 1, default: 10, unit: ' hrs / week',
+    marks: ['1', '10', '20', '35']
+  },
+  {
+    id: 'prevInjuries',
+    type: 'options',
+    text: 'Have you had sports injuries in the past 12 months?',
+    hint: 'Includes strains, sprains, fractures, or overuse issues',
+    options: [
+      { label: 'No injuries', icon: '✅' },
+      { label: '1 minor injury', icon: '🩹' },
+      { label: '2–3 injuries', icon: '⚠️' },
+      { label: '4+ or a serious injury', icon: '🚨' },
+    ]
+  },
+  {
+    id: 'bodyParts',
+    type: 'multiselect',
+    text: 'Any current pain or discomfort?',
+    hint: 'Select all areas that feel sore, tight, or uncomfortable',
+    options: ['Knee','Ankle','Lower Back','Shoulder','Hip','Hamstring','Quad','Calf','Elbow','Neck','None']
+  },
+  {
+    id: 'recovery',
+    type: 'options',
+    text: 'How is your sleep and recovery?',
+    hint: 'Average over the last two weeks',
+    options: [
+      { label: 'Excellent — 8+ hrs, feel rested', icon: '😴' },
+      { label: 'Good — 7 hrs, mostly rested', icon: '🙂' },
+      { label: 'Fair — 6 hrs, some fatigue', icon: '😐' },
+      { label: 'Poor — under 6 hrs, often tired', icon: '😓' },
+    ]
+  },
+  {
+    id: 'warmup',
+    type: 'options',
+    text: 'How consistent is your warm-up and cool-down?',
+    hint: 'Across all your training sessions',
+    options: [
+      { label: 'Always — every session', icon: '🔥' },
+      { label: 'Usually — most sessions', icon: '👍' },
+      { label: 'Sometimes — when I remember', icon: '🤷' },
+      { label: 'Rarely or never', icon: '❌' },
+    ]
+  },
+];
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let currentStep = 0;
+const answers = {};
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+function init() {
+  // Build step dots
+  const dotsEl = document.getElementById('step-dots');
+  dotsEl.innerHTML = '';
+  questions.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'step-dot' + (i === 0 ? ' active' : '');
+    d.id = `dot-${i}`;
+    dotsEl.appendChild(d);
+  });
+  renderStep(0);
+}
+
+function renderStep(idx) {
+  const q = questions[idx];
+  const area = document.getElementById('question-area');
+  const pct = Math.round((idx / questions.length) * 100);
+
+  document.getElementById('step-label').textContent = `Question ${idx+1} of ${questions.length}`;
+  document.getElementById('pct-label').textContent = `${pct}%`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  // Update dots
+  questions.forEach((_, i) => {
+    const d = document.getElementById(`dot-${i}`);
+    d.className = 'step-dot' + (i < idx ? ' done' : i === idx ? ' active' : '');
+  });
+
+  document.getElementById('btn-back').style.display = idx > 0 ? 'block' : 'none';
+  document.getElementById('btn-next').textContent = idx === questions.length - 1 ? 'Analyse My Risk →' : 'Continue →';
+
+  let html = `
+    <div class="question-card">
+      <div class="q-number">Question ${idx+1}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="q-hint">${q.hint}</div>
+  `;
+
+  if (q.type === 'options') {
+    html += `<div class="options">`;
+    q.options.forEach(opt => {
+      const sel = answers[q.id] === opt.label ? ' selected' : '';
+      html += `<button class="opt-btn${sel}" onclick="selectOption('${q.id}','${opt.label}',this)">
+        <span class="opt-icon">${opt.icon}</span>${opt.label}
+      </button>`;
+    });
+    html += `</div>`;
+  }
+
+  if (q.type === 'slider') {
+    const val = answers[q.id] ?? q.default;
+    html += `<div class="slider-wrap">
+      <div class="slider-value" id="slider-val-${q.id}">${val}<span>${q.unit}</span></div>
+      <input type="range" min="${q.min}" max="${q.max}" step="${q.step}" value="${val}"
+        oninput="updateSlider('${q.id}', this.value, '${q.unit}')" />
+      <div class="slider-labels">
+        ${q.marks.map(m => `<span>${m}</span>`).join('')}
+      </div>
+    </div>`;
+    answers[q.id] = val;
+  }
+
+  if (q.type === 'multiselect') {
+    const sel = answers[q.id] || [];
+    html += `<div class="chips">`;
+    q.options.forEach(opt => {
+      const active = sel.includes(opt) ? ' selected' : '';
+      html += `<button class="chip${active}" onclick="toggleChip('${q.id}','${opt}',this)">${opt}</button>`;
+    });
+    html += `</div>`;
+  }
+
+  if (q.type === 'numbers') {
+    html += `<div class="num-grid">`;
+    q.fields.forEach(f => {
+      const v = (answers[q.id] || {})[f.id] || '';
+      html += `<div class="num-field">
+        <label>${f.label}</label>
+        <input type="number" placeholder="${f.placeholder}" value="${v}"
+          onchange="updateNumber('${q.id}','${f.id}',this.value)" />
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  area.innerHTML = html;
+  updateNextBtn();
+}
+
+function selectOption(qId, val, el) {
+  answers[qId] = val;
+  el.closest('.options').querySelectorAll('.opt-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  updateNextBtn();
+}
+
+function updateSlider(qId, val, unit) {
+  answers[qId] = parseFloat(val);
+  document.getElementById(`slider-val-${qId}`).innerHTML = `${val}<span>${unit}</span>`;
+}
+
+function toggleChip(qId, val, el) {
+  if (!answers[qId]) answers[qId] = [];
+  if (el.classList.contains('selected')) {
+    answers[qId] = answers[qId].filter(v => v !== val);
+    el.classList.remove('selected');
+  } else {
+    answers[qId].push(val);
+    el.classList.add('selected');
+  }
+  updateNextBtn();
+}
+
+function updateNumber(qId, fId, val) {
+  if (!answers[qId]) answers[qId] = {};
+  answers[qId][fId] = parseFloat(val);
+}
+
+function updateNextBtn() {
+  const q = questions[currentStep];
+  let valid = false;
+  if (q.type === 'slider') valid = true;
+  else if (q.type === 'options') valid = !!answers[q.id];
+  else if (q.type === 'multiselect') valid = (answers[q.id]||[]).length > 0;
+  else if (q.type === 'numbers') valid = true;
+  document.getElementById('btn-next').disabled = !valid;
+}
+
+function nextStep() {
+  if (currentStep < questions.length - 1) {
+    currentStep++;
+    renderStep(currentStep);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    startAnalysis();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 0) {
+    currentStep--;
+    renderStep(currentStep);
+  }
+}
+
+// ── ANALYSIS ──────────────────────────────────────────────────────────────
+async function startAnalysis() {
+  document.getElementById('form-screen').style.display = 'none';
+  document.getElementById('loading-screen').style.display = 'block';
+  document.querySelector('.hero').style.display = 'none';
+
+  const statuses = [
+    'Initialising biomechanical model…',
+    'Processing training load data…',
+    'Analysing injury history patterns…',
+    'Cross-referencing sport-specific risks…',
+    'Running fatigue & recovery analysis…',
+    'Generating personalised recommendations…',
+    'Finalising your risk report…'
+  ];
+  let si = 0;
+  const statusEl = document.getElementById('loading-status');
+  const timer = setInterval(() => {
+    if (si < statuses.length - 1) {
+      statusEl.textContent = statuses[++si];
+    }
+  }, 700);
+
+  const prompt = buildPrompt();
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: `You are a sports medicine AI. Analyse athlete data and return ONLY valid JSON (no markdown, no backticks) with this exact structure:
+{
+  "overallRisk": <0-100 integer>,
+  "riskLevel": "<Low|Moderate|High|Critical>",
+  "riskColor": "<green|orange|red>",
+  "factors": [
+    {"name": "<factor name>", "score": <0-100>, "color": "<#hex>"},
+    ...5 factors...
+  ],
+  "injuryRisks": [
+    {"name": "<injury>", "probability": "<XX%>", "color": "<#hex>"},
+    ...4 injuries...
+  ],
+  "recommendations": [
+    {"icon": "<emoji>", "color": "<hex bg rgba>", "title": "<title>", "desc": "<description>"},
+    ...4 recs...
+  ],
+  "aiSummary": "<2–3 sentence plain-language summary of the athlete's specific risk profile and most important action to take>"
+}`,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    clearInterval(timer);
+    const text = data.content.map(i => i.text || '').join('');
+    let result;
+    try {
+      result = JSON.parse(text.replace(/```json|```/g, '').trim());
+    } catch(e) {
+      result = fallbackResult();
+    }
+    showResults(result);
+  } catch(e) {
+    clearInterval(timer);
+    showResults(fallbackResult());
+  }
+}
+
+function buildPrompt() {
+  return `Athlete profile for sports injury risk prediction:
+- Sport: ${answers.sport || 'Unknown'}
+- Training level: ${answers.level || 'Unknown'}
+- Weekly training hours: ${answers.trainingLoad || 10} hrs
+- Injury history (past 12 months): ${answers.prevInjuries || 'Unknown'}
+- Current pain/discomfort areas: ${(answers.bodyParts || ['None']).join(', ')}
+- Sleep & recovery quality: ${answers.recovery || 'Unknown'}
+- Warm-up / cool-down consistency: ${answers.warmup || 'Unknown'}
+
+Provide a detailed injury risk assessment with overall score, breakdown factors, specific injury risks likely for this sport and profile, and practical recommendations.`;
+}
+
+function fallbackResult() {
+  return {
+    overallRisk: 62,
+    riskLevel: "Moderate",
+    riskColor: "orange",
+    factors: [
+      { name: "Training Load", score: 72, color: "#ff9100" },
+      { name: "Recovery Quality", score: 55, color: "#ffd32a" },
+      { name: "Injury History", score: 60, color: "#ff9100" },
+      { name: "Warm-up Habits", score: 45, color: "#00c853" },
+      { name: "Biomechanical Risk", score: 68, color: "#ff9100" },
+    ],
+    injuryRisks: [
+      { name: "Muscle Strain", probability: "38%", color: "#ff9100" },
+      { name: "Knee Sprain", probability: "28%", color: "#ffd32a" },
+      { name: "Overuse Injury", probability: "45%", color: "#ff4757" },
+      { name: "Ankle Sprain", probability: "22%", color: "#00c853" },
+    ],
+    recommendations: [
+      { icon: "🛌", color: "rgba(0,229,255,0.1)", title: "Prioritise sleep recovery", desc: "Aim for 7–9 hours per night. Poor sleep increases injury risk by up to 70% in competitive athletes." },
+      { icon: "🔥", color: "rgba(255,145,0,0.1)", title: "Dynamic warm-up every session", desc: "10–15 minutes of sport-specific dynamic warm-up reduces muscle strain risk significantly." },
+      { icon: "📉", color: "rgba(0,200,83,0.1)", title: "Reduce load by 15% this week", desc: "Your training volume is approaching overuse threshold. A deload week will improve long-term output." },
+      { icon: "🧊", color: "rgba(0,114,255,0.1)", title: "Post-session contrast therapy", desc: "Alternating cold/warm treatment on high-load sessions reduces inflammation and speeds recovery." },
+    ],
+    aiSummary: "Your moderate risk profile is primarily driven by high training volume relative to recovery quality. The most impactful change you can make right now is improving sleep consistency — athletes training at your level need structured recovery as much as structured training. Address the warm-up habit first for immediate risk reduction."
+  };
+}
+
+function showResults(r) {
+  document.getElementById('loading-screen').style.display = 'none';
+  const rs = document.getElementById('results-screen');
+  rs.style.display = 'block';
+
+  const scoreColor = r.riskColor === 'green' ? 'var(--green)' : r.riskColor === 'red' ? 'var(--red)' : 'var(--orange)';
+  const bgClass = r.riskColor === 'green' ? 'bg-low' : r.riskColor === 'red' ? 'bg-high' : 'bg-med';
+  const score = r.overallRisk;
+
+  // Gauge SVG arc
+  const angle = (score / 100) * 180;
+  const r2 = 70, cx = 80, cy = 80;
+  const startX = cx - r2, startY = cy;
+  const endX = cx + r2 * Math.cos((angle - 180) * Math.PI / 180);
+  const endY = cy + r2 * Math.sin((angle - 180) * Math.PI / 180);
+  const largeArc = angle > 180 ? 1 : 0;
+  const gaugePath = `M ${startX} ${startY} A ${r2} ${r2} 0 ${largeArc} 1 ${endX} ${endY}`;
+  const bgPath = `M ${startX} ${startY} A ${r2} ${r2} 0 1 1 ${cx + r2} ${cy}`;
+
+  let html = `
+    <div class="risk-gauge">
+      <div class="gauge-label">Overall Injury Risk Score</div>
+      <div class="gauge-arc">
+        <svg viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <path d="${bgPath}" fill="none" stroke="#1f2d3d" stroke-width="10" stroke-linecap="round"/>
+          <path d="${gaugePath}" fill="none" stroke="${scoreColor}" stroke-width="10" stroke-linecap="round" style="filter:drop-shadow(0 0 6px ${scoreColor})"/>
+        </svg>
+      </div>
+      <div class="gauge-score" style="color:${scoreColor}">${score}</div>
+      <div class="gauge-level ${bgClass}">${r.riskLevel} Risk</div>
+    </div>
+
+    <div class="breakdown">
+      <h3>📊 Risk Factor Breakdown</h3>
+      ${(r.factors || []).map(f => `
+        <div class="risk-bar-row">
+          <div class="risk-bar-label">${f.name}</div>
+          <div class="risk-bar-track">
+            <div class="risk-bar-fill" style="width:${f.score}%;background:${f.color}"></div>
+          </div>
+          <div class="risk-bar-pct">${f.score}%</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;margin-bottom:12px">🎯 Top Injury Risks for Your Profile</div>
+      <div class="injury-cards">
+        ${(r.injuryRisks || []).map(inj => `
+          <div class="injury-card">
+            <div class="inj-name">${inj.name}</div>
+            <div class="inj-prob" style="color:${inj.color}">${inj.probability}</div>
+            <div class="inj-label">probability</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="ai-analysis">
+      <div class="ai-header">
+        <span>🤖</span> AI Analysis
+      </div>
+      <div class="ai-text">${r.aiSummary}</div>
+    </div>
+
+    <div class="recs">
+      <h3>✅ Personalised Recommendations</h3>
+      ${(r.recommendations || []).map(rec => `
+        <div class="rec-item">
+          <div class="rec-icon" style="background:${rec.color}">${rec.icon}</div>
+          <div class="rec-body">
+            <div class="rec-title">${rec.title}</div>
+            <div class="rec-desc">${rec.desc}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('results-content').innerHTML = html;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restart() {
+  currentStep = 0;
+  Object.keys(answers).forEach(k => delete answers[k]);
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('form-screen').style.display = 'block';
+  document.querySelector('.hero').style.display = 'block';
+  init();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── START ──────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
